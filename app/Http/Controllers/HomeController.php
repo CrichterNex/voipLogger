@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\VoipRecord;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -23,6 +24,7 @@ class HomeController extends Controller
      */
     public function index()
     {
+        //Get 50 latest VoIP records
         return view('home');
     }
 }
