@@ -28,12 +28,27 @@ route::get('/latest-voip-records', function () {
 });
 
 
-route::post('/filter-voip-records', function (Request $request) {
+route::get('/filter-voip-records', function (Request $request) {
     $query = \App\Models\VoipRecord::query();
-    
-    if ($request->has('extension')) {
-        $query->where('extension', $request->input('extension'));
+    if ($request->has('search')) {
+        $search = $request->input('search');
+        $query->where(function ($q) use ($search) {
+            $q->where('extension', 'like', "%{$search}%")
+                ->orWhere('ddi', 'like', "%{$search}%")
+                ->orWhere('initiator', 'like', "%{$search}%")
+                ->orWhere('pri_number', 'like', "%{$search}%")
+                ->orWhere('destination_number', 'like', "%{$search}%")
+                ->orWhere('call_direction', 'like', "%{$search}%")
+                ->orWhere('some_incoming_call_number1', 'like', "%{$search}%")
+                ->orWhere('some_incoming_call_number2', 'like', "%{$search}%")
+                ->orWhere('external_number', 'like', "%{$search}%");
+        });
+    } else {
+        return response()->json(['error' => 'Search query is required'], 400);
     }
-    $records = \App\Models\VoipRecord::orderBy('created_at', 'desc')->take(50)->get();
-    return response()->json($records);
+
+    // Apply sorting and limit to the filtered query
+    $records = $query->orderBy('created_at', 'desc')->take(50)->get();
+
+    return response()->json(['records' => $records]);
 })->name('filter-voip-records');

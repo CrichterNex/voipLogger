@@ -29,8 +29,9 @@
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
-                    <ul class="navbar-nav me-auto">
-                        <li><i class="bi bi-circle-fill" id="tcp_listener"></i>TCP Listener status</li>
+                    <ul class="navbar-nav me-auto m-2">
+                        <li class="ps-2"><i class="bi bi-circle-fill" id="tcp_listener"></i>TCP Listener status</li>
+                        <li class="ps-2"><i class="bi bi-search">Search</i></li>
                     </ul>
 
                     <!-- Right Side Of Navbar -->
@@ -107,6 +108,10 @@ updateTcpListenerStatus(); // Initial call to set the status on page load
 
 
 function getData() {
+    if (document.querySelector('input[name="search"]').value.trim() !== '') {
+        searchData(); // If there's a search term, use the search function
+        return;
+    }
     fetch('api/latest-voip-records')
         .then(response => response.json())
         .then(data => {
@@ -133,18 +138,31 @@ function getData() {
         })
         .catch(error => console.error('Error fetching VoIP records:', error));
 }
+getData(); // Initial call to populate the table on page load
 
-setInterval(getData, 5000); // Update every 15 seconds
-
+document.addEventListener('change', function(event) {
+    if (event.target.name === 'search') {
+        searchData();
+    }
+});
+document.addEventListener('keyup', function(event) {
+    if (event.target.name === 'search') {
+        searchData();
+    }
+});
 
 function searchData() {
     const searchInput = document.querySelector('input[name="search"]');
     const searchValue = searchInput.value.trim();
-    fetch(`api/filter-voip-records?query=${encodeURIComponent(searchValue)}`)
+    fetch(`api/filter-voip-records?search=${encodeURIComponent(searchValue)}`)
         .then(response => response.json())
         .then(data => {
+            console.error('Search results:', data.error);
             const tableBody = document.querySelector('table tbody');
-            tableBody.innerHTML = ''; // Clear existing rows
+            //clear all rows except the header
+            for( let i = tableBody.rows.length - 1; i > 0; i--) {
+                tableBody.deleteRow(i);
+            }
             data.records.forEach(record => {
                 const row = document.createElement('tr');
                 row.innerHTML = `

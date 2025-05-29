@@ -127,21 +127,21 @@ class VoipRecord extends Model
      * Returns durantion in seconds
      * @return int
      */
-    public function getDurationInSeconds(): int {
-        return $this->duration_in_seconds;
+    public function getDurationInSecondsAttribute($value) {
+        return $value;
     }
      
     /** 
      * Returns call direction
      */
-    public function getCallDirection(): ?string {
-        return ucwords($this->call_direction);
+    public function getCallDirectionAttribute($value) {
+        return ucwords($value);
     }
 
     /**
      * Returns call duration in a human-readable format
      */
-    public function getDuration(): string {
+    public function getDurationAttribute(): string {
         $hours = floor($this->duration_in_seconds / 3600);
         $minutes = floor(($this->duration_in_seconds % 3600) / 60);
         $seconds = $this->duration_in_seconds % 60;
