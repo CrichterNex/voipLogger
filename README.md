@@ -28,6 +28,6 @@ WantedBy=multi-user.target
 # reload systemd and start service
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
-sudo systemctl enable laravel-tcp
-sudo systemctl start laravel-tcp
-sudo systemctl status laravel-tcp
+sudo systemctl enable voip-logger
+sudo systemctl start voip-logger
+sudo systemctl status voip-logger

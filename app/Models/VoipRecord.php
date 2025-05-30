@@ -78,7 +78,8 @@ class VoipRecord extends Model
             return; // ignore this record, it is not a valid VOIP record
         }
 
-        if (count($data) > 11) {
+        if (count($data) < 11) {
+            logger()->error("Invalid VOIP record: less than 11 fields found in record: $orig");
             return; // ignore this record, it is not a valid VOIP record
         }
         try {
