@@ -126,7 +126,7 @@ class VoipRecord extends Model
             
             $record->save();
         } catch (Throwable $e) {
-            throw new \Exception('Error creating VoIP record: ' . $e->getMessage() . " -- " . $orig);
+            return; // ignore this record, it is not a valid VOIP record
         }
 
         

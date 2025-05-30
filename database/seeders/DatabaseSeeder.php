@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'admin',
             'email' => 'admin@example.com',
-            'password' => bcrypt('admin'), // Ensure the password is hashed
+            'password' => bcrypt('T3chy#456'), // Ensure the password is hashed
         ]);
     }
 }

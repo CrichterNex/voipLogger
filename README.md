@@ -4,4 +4,30 @@
 </p>
 
 ## Built on Laravel
-Base Laravel app version 12, only with a login UI and Bootstrap.
+App that record VOIP records from a MITEL Voip server
+
+## Linux service install 
+in /etc/systemd/system/voip-logger.service place the following code
+
+[Unit]
+Description=VOIPLogger TCP Listener
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/php {location of app}/artisan tcp:listen
+WorkingDirectory={location of app}
+Restart=always
+RestartSec=5
+User=www-data
+Environment=APP_ENV=production
+Environment=LOG_CHANNEL=stack
+
+[Install]
+WantedBy=multi-user.target
+
+# reload systemd and start service
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable laravel-tcp
+sudo systemctl start laravel-tcp
+sudo systemctl status laravel-tcp
