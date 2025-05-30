@@ -30,8 +30,16 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav me-auto m-2">
-                        <li class="ps-2"><i class="bi bi-circle-fill" id="tcp_listener"></i>TCP Listener status</li>
-                        <li class="ps-2"><i class="bi bi-search">Search</i></li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">
+                                <i class="bi bi-circle-fill" id="tcp_listener"></i>  TCP Listener status
+                            </a>
+                        </li>
+                        @if (Auth::user()) 
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{route('search.index')}}"><i class="bi bi-search"></i>Search</a>
+                        </li>
+                        @endif
                     </ul>
 
                     <!-- Right Side Of Navbar -->
@@ -74,6 +82,19 @@
         </nav>
 
         <main class="py-4">
+            @if ($errors->any())
+            <div class="alert alert-danger m-0" role="alert">
+                @foreach($errors->all() as $error)
+                    <li> {{ $error }} </li>
+                @endforeach
+            </div>
+            @endif
+            @if (Session::has('success'))
+
+            <div class="alert alert-success m-0" role="alert">
+                {{ Session::get('success') }}
+            </div>
+            @endif
             @yield('content')
         </main>
     </div>
@@ -106,78 +127,5 @@ function updateTcpListenerStatus() {
 setInterval(updateTcpListenerStatus, 50000); // Update every 5 seconds
 updateTcpListenerStatus(); // Initial call to set the status on page load
 
-
-function getData() {
-    if (document.querySelector('input[name="search"]').value.trim() !== '') {
-        searchData(); // If there's a search term, use the search function
-        return;
-    }
-    fetch('api/latest-voip-records')
-        .then(response => response.json())
-        .then(data => {
-            const tableBody = document.querySelector('table tbody');
-            //clear all rows except the header
-            for( let i = tableBody.rows.length - 1; i > 0; i--) {
-                tableBody.deleteRow(i);
-            }
-            // Populate the table with new data
-        
-            data.records.forEach(record => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${record.direction}</td>
-                    <td>${record.extension}</td>
-                    <td>${record.initiator}</td>
-                    <td>${record.datetime}</td>
-                    <td>${record.duration}</td>
-                    <td>${record.destination_number}</td>
-                    <td>${record.external_number}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        })
-        .catch(error => console.error('Error fetching VoIP records:', error));
-}
-getData(); // Initial call to populate the table on page load
-
-document.addEventListener('change', function(event) {
-    if (event.target.name === 'search') {
-        searchData();
-    }
-});
-document.addEventListener('keyup', function(event) {
-    if (event.target.name === 'search') {
-        searchData();
-    }
-});
-
-function searchData() {
-    const searchInput = document.querySelector('input[name="search"]');
-    const searchValue = searchInput.value.trim();
-    fetch(`api/filter-voip-records?search=${encodeURIComponent(searchValue)}`)
-        .then(response => response.json())
-        .then(data => {
-            console.error('Search results:', data.error);
-            const tableBody = document.querySelector('table tbody');
-            //clear all rows except the header
-            for( let i = tableBody.rows.length - 1; i > 0; i--) {
-                tableBody.deleteRow(i);
-            }
-            data.records.forEach(record => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${record.direction}</td>
-                    <td>${record.extension}</td>
-                    <td>${record.initiator}</td>
-                    <td>${record.datetime}</td>
-                    <td>${record.duration}</td>
-                    <td>${record.destination_number}</td>
-                    <td>${record.external_number}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        })
-        .catch(error => console.error('Error searching VoIP records:', error));
-}
 </script>
 </html>

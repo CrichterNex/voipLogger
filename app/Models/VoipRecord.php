@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Ramsey\Uuid\Uuid;
 use Throwable;
@@ -49,17 +50,18 @@ class VoipRecord extends Model
      * @throws \Exception
      */
     public static function create(string $data): void {
+        
         if (empty($data)) {
-            throw new \Exception('Data cannot be empty');
+            return; // ignore empty data
         }
 
         if ($data == "\n") {
-            throw new \Exception('Data cannot be just a newline character');
+            return;
         }
         if (empty(trim($data))) {
-            throw new \Exception('Data cannot be empty or whitespace');
+            return; // ignore empty lines
         }
-        
+        $orig = $data;
         // Remove any leading or trailing whitespace
         $data = trim($data);
 
@@ -69,8 +71,16 @@ class VoipRecord extends Model
                 unset($data[$key]);
             }
         }
+
         $data = array_values($data); // re-index the array
 
+        if (!(count($data) == 11 || count($data) == 13)) {
+            return; // ignore this record, it is not a valid VOIP record
+        }
+
+        if (count($data) > 11) {
+            return; // ignore this record, it is not a valid VOIP record
+        }
         try {
             $record = new VoipRecord();
             $record->extension = $data[0] ?? '';
@@ -116,7 +126,7 @@ class VoipRecord extends Model
             
             $record->save();
         } catch (Throwable $e) {
-            throw new \Exception('Error creating VoIP record: ' . $e->getMessage());
+            throw new \Exception('Error creating VoIP record: ' . $e->getMessage() . " -- " . $orig);
         }
 
         
@@ -131,11 +141,31 @@ class VoipRecord extends Model
         return $value;
     }
      
-    /** 
-     * Returns call direction
+
+    /**
+     * Returns the call type based on the call direction
      */
-    public function getCallDirectionAttribute($value) {
-        return ucwords($value);
+    protected function callDirection(): Attribute
+    {
+        return Attribute::make(
+            get: fn (string $value) => ucwords($value),
+        );
+    }
+
+    /**
+     * Returns destination_number, and removes null if it is empty
+     * @return string|null
+     */
+    protected function destinationNumber(): Attribute
+    {
+        if (empty($this->attributes['destination_number'])) {
+            return Attribute::make(
+                get: fn () => "",
+            );
+        }
+        return Attribute::make(
+            get: fn (string $value) => $value,
+        );
     }
 
     /**

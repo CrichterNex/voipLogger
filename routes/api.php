@@ -22,9 +22,9 @@ Route::get('/tcp-listener/status', function (Request $request) {
 });
 
 route::get('/latest-voip-records', function () {
-    $records = \App\Models\VoipRecord::orderBy('created_at', 'desc')->take(50)->get();
-    
-    return response()->json(['records' => $records]);
+    $records = \App\Models\VoipRecord::orderBy('datetime', 'desc')->take(50)->get();
+    $data = convertDataToArray($records);
+    return response()->json(['records' => $data]);
 });
 
 
@@ -48,7 +48,24 @@ route::get('/filter-voip-records', function (Request $request) {
     }
 
     // Apply sorting and limit to the filtered query
-    $records = $query->orderBy('created_at', 'desc')->take(50)->get();
-
-    return response()->json(['records' => $records]);
+    $records = $query->orderBy('datetime', 'desc')->take(50)->get();
+    $data = convertDataToArray($records);
+    return response()->json(['records' => $data]);
 })->name('filter-voip-records');
+
+
+function convertDataToArray($data) {
+    $arr = [];
+    foreach( $data as $record) {
+        $arr[] = [
+            'duration' => $record->getDurationAttribute(),
+            'extension' => $record->extension,
+            'datetime' => $record->datetime,
+            'initiator' => $record->initiator,
+            'destination' => $record->destination_number,
+            'call_direction' => $record->call_direction,
+            'external_number' => $record->external_number
+        ];
+    }
+    return $arr;
+}

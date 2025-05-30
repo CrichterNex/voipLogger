@@ -11,3 +11,4 @@ Auth::routes(['register' => false, 'reset' => false, 'verify' => false, 'remembe
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home')->middleware('auth');
 Route::get('/search', [SearchController::class, 'index'])->name('search.index')->middleware('auth');
 Route::post('/search', [SearchController::class, 'search'])->name('search')->middleware('auth');
+Route::post('/export', [SearchController::class, 'export'])->name('export')->middleware('auth');
