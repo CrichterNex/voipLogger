@@ -28,56 +28,51 @@ class TcpListener extends Command
     public function handle()
     {
         $host = '0.0.0.0';
-        
-        if (extension_loaded('sockets')) {
-            echo "Sockets extension is enabled.\n";
-        } else {
-           $this->error("Sockets extension is NOT enabled.\n");
-           return;
-        }
-        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 
-        if(!$socket) {
+        if (!extension_loaded('sockets')) {
+            $this->error("Sockets extension is NOT enabled.");
+            return;
+        }
+
+        $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+        if (!$socket) {
             $this->error("Socket creation failed: " . socket_strerror(socket_last_error()));
             return;
         }
+
         socket_bind($socket, $host, $this->port);
         socket_listen($socket);
-
         $this->info("TCP listener started on {$host}:{$this->port}");
 
         while (true) {
-            $client = socket_accept($socket);
+            $client = @socket_accept($socket);
             if ($client === false) {
-                $this->error("Failed to accept connection: " . socket_strerror(socket_last_error()));
+                $this->error("Socket accept failed: " . socket_strerror(socket_last_error()));
                 continue;
             }
 
-            $buffer = '';
-            while (true) {
-                $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
-                if ($chunk === false || $chunk === '') {
-                    // End of transmission or client closed connection
-                    break;
+            socket_set_option($client, SOL_SOCKET, SO_RCVTIMEO, ["sec" => 10, "usec" => 0]);
+
+            try {
+                while (true) {
+                    $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
+                    if ($chunk === false || $chunk === '') {
+                        break;
+                    }
+
+                    $line = trim($chunk);
+                    if ($line === '') continue;
+
+                    file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
+
+                    VoipRecord::create($line); // Use correct column name
                 }
 
-                $line = trim($chunk);
-                if ($line === '') {
-                    continue; // Skip empty lines
-                }
-
-                // Log line to file
-                file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
-
-                // Save line to DB
-                try {
-                    VoipRecord::create($line);
-                } catch (\Exception $e) {
-                    $this->error("DB insert failed: " . $e->getMessage() . " -- Data: $line");
-                }
+                socket_write($client, "ACK\n");
+            } catch (\Exception $e) {
+                $this->error("Client handling error: " . $e->getMessage());
             }
 
-            socket_write($client, "ACK\n");
             socket_close($client);
         }
 
