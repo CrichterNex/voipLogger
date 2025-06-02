@@ -100,7 +100,7 @@
     </div>
 </body>
 <script>
-
+@if(Auth::user())
 function updateTcpListenerStatus() {
     fetch('api/tcp-listener/status')
         .then(response => response.json())
@@ -126,6 +126,6 @@ function updateTcpListenerStatus() {
 }
 setInterval(updateTcpListenerStatus, 50000); // Update every 5 seconds
 updateTcpListenerStatus(); // Initial call to set the status on page load
-
+@endif
 </script>
 </html>
