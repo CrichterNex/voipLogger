@@ -41,7 +41,6 @@ class TcpListener extends Command
             $this->error("Socket creation failed: " . socket_strerror(socket_last_error()));
             return;
         }
-
         socket_bind($socket, $host, $this->port);
         socket_listen($socket);
 
@@ -54,22 +53,29 @@ class TcpListener extends Command
                 continue;
             }
 
-            $input = socket_read($client, 20480, PHP_NORMAL_READ);
-
-            //Log data to a file
-            file_put_contents(storage_path('logs/tcp_listener.log'), "$input", FILE_APPEND);
-
-            // Example: Save to database or dispatch a job
-            // \App\Models\YourModel::create(['data' => $input]);
-            try {
-                if (empty($input)) {
-                    //ignore
-                } else { 
-                    VoipRecord::create($input);
+            $buffer = '';
+            while (true) {
+                $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
+                if ($chunk === false || $chunk === '') {
+                    // Connection closed or error
+                    break;
                 }
-            } catch (\Exception $e) {
-                $this->error("Failed to create VoipRecord in DB: " . $e->getMessage(). " -- Data: $input");
-                continue;
+
+                $chunk = trim($chunk); // Remove trailing newlines
+                if ($chunk === '') continue; // Ignore empty lines
+
+                $buffer .= $chunk . "\n"; // Accumulate data
+
+                // Log each chunk (optional, or log after full message)
+                file_put_contents(storage_path('logs/tcp_listener.log'), "$chunk\n", FILE_APPEND);
+
+                try {
+                    // Example: convert to array or process if it's JSON or key-value
+                    $data = ['data' => $chunk];
+                    VoipRecord::create($data);
+                } catch (\Exception $e) {
+                    $this->error("Failed to create VoipRecord in DB: " . $e->getMessage() . " -- Data: $chunk");
+                }
             }
 
             socket_write($client, "ACK\n");
