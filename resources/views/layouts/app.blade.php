@@ -30,12 +30,12 @@
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav me-auto m-2">
+                        @if (Auth::user()) 
                         <li class="nav-item">
                             <a href="#" class="nav-link">
                                 <i class="bi bi-circle-fill" id="tcp_listener"></i>  TCP Listener status
                             </a>
                         </li>
-                        @if (Auth::user()) 
                         <li class="nav-item">
                             <a class="nav-link" href="{{route('search.index')}}"><i class="bi bi-search"></i>Search</a>
                         </li>
