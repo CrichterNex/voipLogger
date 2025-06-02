@@ -57,7 +57,7 @@ class TcpListener extends Command
             $input = socket_read($client, 2048000);
 
             //Log data to a file
-            file_put_contents(storage_path('logs/tcp_listener.log'), "$input\n", FILE_APPEND);
+            file_put_contents(storage_path('logs/tcp_listener.log'), "$input", FILE_APPEND);
 
             // Example: Save to database or dispatch a job
             // \App\Models\YourModel::create(['data' => $input]);
