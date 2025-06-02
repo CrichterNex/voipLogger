@@ -65,14 +65,14 @@ class TcpListener extends Command
                 if (empty($input)) {
                     //ignore
                 } else { 
-                    $input = explode("\r", $input);
+                    $input = explode("\r\n", $input);
                     $this->info("Received: $input");
                     foreach($input as $line) {
                         VoipRecord::create($line);
                     }
                 }
             } catch (\Exception $e) {
-                $this->error("Failed to create VoipRecord in DB: " . $e->getMessage());
+                $this->error("Failed to create VoipRecord in DB: " . $e->getMessage(). " -- Data: $input");
             }
 
             socket_write($client, "ACK\n");
