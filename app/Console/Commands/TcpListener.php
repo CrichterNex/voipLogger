@@ -54,7 +54,7 @@ class TcpListener extends Command
                 continue;
             }
 
-            $input = socket_read($client, 2048);
+            $input = socket_read($client, 2048000);
 
             //Log data to a file
             file_put_contents(storage_path('logs/tcp_listener.log'), "$input\n", FILE_APPEND);
@@ -65,13 +65,14 @@ class TcpListener extends Command
                 if (empty($input)) {
                     //ignore
                 } else { 
+                    $input = explode("\r\n", $input);
                     $this->info("Received: $input");
-                    VoipRecord::create($input);
-                    logger()->info("VoipRecord created successfully with data: $input");
+                    foreach($input as $line) {
+                        VoipRecord::create($line);
+                    }
                 }
             } catch (\Exception $e) {
                 $this->error("Failed to create VoipRecord in DB: " . $e->getMessage());
-                logger()->error("VoipRecord to create VoipRecord in DB: $input");
             }
 
             socket_write($client, "ACK\n");
