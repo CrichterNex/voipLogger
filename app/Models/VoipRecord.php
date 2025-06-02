@@ -50,15 +50,18 @@ class VoipRecord extends Model
      * @throws \Exception
      */
     public static function create(string $data): void {
-        
+        echo "Processing VOIP record: $data\n";
         if (empty($data)) {
+            echo "Empty data received, ignoring.\n";
             return; // ignore empty data
         }
 
         if ($data == "\n") {
+            echo "Received a newline character, ignoring.\n";
             return;
         }
         if (empty(trim($data))) {
+            echo "Received an empty line, ignoring.\n";
             return; // ignore empty lines
         }
         $orig = $data;
@@ -75,11 +78,12 @@ class VoipRecord extends Model
         $data = array_values($data); // re-index the array
 
         if (!(count($data) == 11 || count($data) == 13)) {
+            echo "Invalid VOIP record: expected 11 or 13 fields, found " . count($data) . " fields in record: $orig";
             return; // ignore this record, it is not a valid VOIP record
         }
 
         if (count($data) < 11) {
-            logger()->error("Invalid VOIP record: less than 11 fields found in record: $orig");
+            echo "Invalid VOIP record: less than 11 fields found in record: $orig";
             return; // ignore this record, it is not a valid VOIP record
         }
         try {
@@ -90,7 +94,8 @@ class VoipRecord extends Model
             $time = explode(":",$data[3]);
             $datetime->setTime($time[0] ?? 0, $time[1] ?? 0, $time[2] ?? 0);
             if (!$datetime) {
-                throw new \Exception('Invalid datetime format');
+                echo 'Invalid datetime format';
+                return;
             }
             $record->datetime = $datetime;
             $duration = [
@@ -127,6 +132,10 @@ class VoipRecord extends Model
             
             $record->save();
         } catch (Throwable $e) {
+            echo "Failed to create VoipRecord in DB: " . $e->getMessage() . "\n";
+            echo "Original data: $orig\n";
+            echo "Data after processing: " . implode(' ', $data) . "\n";
+            echo "Stack trace: " . $e->getTraceAsString() . "\n";
             return; // ignore this record, it is not a valid VOIP record
         }
 
