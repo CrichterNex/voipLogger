@@ -54,7 +54,7 @@ class TcpListener extends Command
                 continue;
             }
 
-            $input = socket_read($client, 2048000);
+            $input = socket_read($client, 20480, PHP_NORMAL_READ);
 
             //Log data to a file
             file_put_contents(storage_path('logs/tcp_listener.log'), "$input", FILE_APPEND);
