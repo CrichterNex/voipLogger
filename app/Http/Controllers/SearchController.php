@@ -43,7 +43,7 @@ class SearchController extends Controller
             $records  = VoipRecord::where('extension', 'like', '%' . $request->extension . '%')->whereBetween('datetime', [
                 $request->from . ' 00:00:00',
                 $request->to . ' 23:59:59'
-            ])->orderBy('datetime', 'desc')->get();
+            ])->orderBy('datetime', 'desc')->paginate(50);
 
             return view('search.index', [ 'records' => $records, 'extension' => $request->extension, 'from' => $request->from, 'to' => $request->to ]);
         } catch (\Throwable $e) {

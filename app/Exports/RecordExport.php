@@ -49,6 +49,9 @@ class RecordExport implements FromCollection, WithHeadings, ShouldAutoSize, With
             'Duration HH:MM:SS',
             'Destination',
             'External number',
+            'Cost',
+            'Routing chain',
+            'Termination reason',
         ];
     }
 
@@ -64,6 +67,9 @@ class RecordExport implements FromCollection, WithHeadings, ShouldAutoSize, With
             $record->duration,
             $record->destination_number,
             $record->external_number,
+            "R" . number_format((doubleval($record->bill_cost)), 2),
+            str_replace('<br>', "\r\n", $record->chain_routed),
+            $record->termination_reason,
         ];
 
         return $arr;
@@ -76,7 +82,7 @@ class RecordExport implements FromCollection, WithHeadings, ShouldAutoSize, With
         return [
             AfterSheet::class => function(AfterSheet $event) {
                 //Set header column
-                $event->sheet->getDelegate()->getStyle('A1:G1')->applyFromArray([
+                $event->sheet->getDelegate()->getStyle('A1:J1')->applyFromArray([
                     'font' => [
                         'bold' => true,
                     ],
@@ -85,10 +91,14 @@ class RecordExport implements FromCollection, WithHeadings, ShouldAutoSize, With
                     ],
                 ]);
 
+
+
                 for ($i = 2; $i <= $this->rowCount; $i++) {
-                    $row = "A$i:G$i";
+                    $row = "A$i:J$i";
                     $event->sheet->getDelegate()->getStyle($row)->getFont()->setSize(10);
                     $event->sheet->getDelegate()->getStyle($row)->getFont()->setName('Tahoma');
+                    //auto wrap text for the chain routed column
+                    $event->sheet->getDelegate()->getStyle("I$i")->getAlignment()->setWrapText(true);
                 }
               
             }

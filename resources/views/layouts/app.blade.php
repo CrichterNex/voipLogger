@@ -33,11 +33,17 @@
                         @if (Auth::user()) 
                         <li class="nav-item">
                             <a href="#" class="nav-link">
-                                <i class="bi bi-circle-fill" id="tcp_listener"></i>  TCP Listener status
+                                <i class="bi bi-circle-fill" id="tcp_listener2533"></i>  TCP Listener status 2533
+                            </a> 
+                            <a href="#" class="nav-link">
+                                <i class="bi bi-circle-fill" id="tcp_listener3000"></i>  TCP Listener status 3000
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{route('search.index')}}"><i class="bi bi-search"></i>Search</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{route('settings.index')}}"><i class="bi bi-gear"></i>Settings</a>
                         </li>
                         @endif
                     </ul>
@@ -101,8 +107,8 @@
 </body>
 <script>
 @if(Auth::user())
-function updateTcpListenerStatus() {
-    fetch('api/tcp-listener/status')
+function updateTcpListenerStatus2533() {
+    fetch('api/tcp-listener/status2533')
         .then(response => response.json())
         .then(data => {
             const statusElement = document.getElementById('tcp_listener');
@@ -124,8 +130,35 @@ function updateTcpListenerStatus() {
         })
         .catch(error => console.error('Error fetching TCP listener status:', error));
 }
-setInterval(updateTcpListenerStatus, 50000); // Update every 5 seconds
-updateTcpListenerStatus(); // Initial call to set the status on page load
+
+function updateTcpListenerStatus3000() {
+    fetch('api/tcp-listener/status3000')
+        .then(response => response.json())
+        .then(data => {
+            const statusElement = document.getElementById('tcp_listener3000');
+            if (data.status === 'running') {
+                if (!statusElement.classList.contains('text-success')) {
+                    statusElement.classList.add('text-success');
+                }
+                if (statusElement.classList.contains('text-danger')) {
+                    statusElement.classList.remove('text-danger');
+                }
+            } else {
+                if (!statusElement.classList.contains('text-danger')) {
+                    statusElement.classList.add('text-danger');
+                }
+                if (statusElement.classList.contains('text-success')) {
+                    statusElement.classList.remove('text-success');
+                }
+            }
+        })
+        .catch(error => console.error('Error fetching TCP listener status:', error));
+}
+
+setInterval(updateTcpListenerStatus2533, 50000); // Update every 5 seconds
+updateTcpListenerStatus2533(); // Initial call to set the status on page load
+setInterval(updateTcpListenerStatus3000, 50000); // Update every 5 seconds
+updateTcpListenerStatus3000(); // Initial call to set the status on page load
 @endif
 </script>
 </html>

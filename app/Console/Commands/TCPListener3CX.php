@@ -2,33 +2,40 @@
 
 namespace App\Console\Commands;
 
-use App\Models\VoipRecord;
+use App\Models\ThreeCXCDR;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Settings;
 use Socket;
-use App\Models\MitelCDR;
-class TcpListener extends Command
+class TCPListener3CX extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'tcp:listen';
+    protected $signature = 'app:tcp-listener-3cx';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Creates a TCP listener that listens for incoming connections on a specified port.';
-
-    protected $port = 2533;
+    protected $description = 'TCP listener for 3CX CDR data. Listens on port 3000 and processes incoming data.';
+    protected $port = 3000;
     /**
      * Execute the console command.
      */
     public function handle()
     {
         $host = '0.0.0.0';
+
+        $allowed_ips = Settings::where('name', 'cdr_allowed_hosts')->first();
+        if ($allowed_ips) {
+            $allowed_ips = explode(',', $allowed_ips->value);       
+        } else {
+            $allowed_ips = [];
+        }
 
         if (!extension_loaded('sockets')) {
             $this->error("Sockets extension is NOT enabled.");
@@ -55,25 +62,33 @@ class TcpListener extends Command
             socket_set_option($client, SOL_SOCKET, SO_RCVTIMEO, ["sec" => 10, "usec" => 0]);
 
             try {
+                
+
                 while (true) {
+                    
                     $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
                     if ($chunk === false || $chunk === '') {
                         break;
                     }
+                    
 
                     $line = trim($chunk);
-                    if ($line === '') continue;
+                    if ($line === '')  {
+                        continue;
+                    }
 
-                    file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
+                    file_put_contents(storage_path('logs/tcp_listener3cx.log'), "$line" . PHP_EOL, FILE_APPEND);
+                    
 
-                    MitelCDR::PreProcessData($line); // Use correct column name
+                    ThreeCXCDR::PreProcessData($line);
 
+                    
                 }
 
                 socket_write($client, "ACK\n");
             } catch (\Exception $e) {
                 $this->error("Client handling error: " . $e->getMessage());
-                \Illuminate\Support\Facades\Storage::append('logs/tcp_listener_errors.log', "Client handling error: " . $e->getMessage() . "\n");
+                Storage::append('logs/tcp_listener3cx_errors.log', "Client handling error: " . $e->getMessage() . "\n");
             }
 
             socket_close($client);
