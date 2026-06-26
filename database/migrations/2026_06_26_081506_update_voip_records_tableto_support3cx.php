@@ -62,19 +62,15 @@ return new class extends Migration
             $table->string('time_answered')->nullable();
             $table->string('time_end')->nullable();
             $table->string('termination_reason')->nullable();
-            $table->string('from_dn')->nullable();
-            $table->string('to_dn')->nullable();
             $table->string('dial_no')->nullable();
             $table->string('reason_code')->nullable();
             $table->string('final_dn')->nullable();
             $table->string('bill_code')->nullable();
             $table->double('bill_rate')->default(0.0);
-            $table->string('bill_name')->nullable();
             $table->string('dialed_number')->nullable();
             $table->string('chain_routed')->nullable();
-            
-            $table->string('final_dn')->nullable();
-            $table->string('record_type')->nullable();
+            $table->string('record_type')->default('Mitel CDR');
+            $table->string('received_id')->nullable()->change();
             //Rename some of the columns to match the 3CX CDR fields
             $table->renameColumn('some_cost_field', 'bill_name');
             $table->renameColumn('some_incoming_call_number1', 'from_dn');
@@ -109,6 +105,7 @@ return new class extends Migration
             ]);
             //Rename bill_name back to some_cost_field
             $table->renameColumn('bill_name', 'some_cost_field');
+
         });
     }
 };

@@ -75,6 +75,9 @@
                                 <th>Duration</th>
                                 <th>Destination</th>
                                 <th>External Number</th>
+                                <th>Cost</th>
+                                <th>Chain Routed</th>
+                                <th>Record Type</th>
                             </tr>
 
                             @if(isset($records))
@@ -87,10 +90,17 @@
                                     <td>{{ $r->duration }}</td>
                                     <td>{{ $r->destination_number }}</td>
                                     <td>{{ $r->external_number }} </td>
+                                    <td>{{ $r->bill_cost }} </td>
+                                    <td>{!! $r->chain_routed !!} </td>
+                                    <td>{{ $r->record_type }} </td>
+                                    <td>{{ $r->termination_reason }} </td>
                                 </tr>                               
                             @endforeach
                             @endif
                         </table>
+                        <div class="d-flex justify-content-center">
+                            {{ $records->links() }}
+                        </div>
                         @endif
                    </div>
                     

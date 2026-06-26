@@ -66,17 +66,14 @@ class TcpListener extends Command
 
                     file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
 
-                    $return = MitelCDR::PreProcessData($line); // Use correct column name
+                    MitelCDR::PreProcessData($line); // Use correct column name
 
-                    if ($return == null) {
-                        echo "Invalid VOIP record: $line\n";
-                        continue; // ignore this record, it is not a valid VOIP record
-                    }
                 }
 
                 socket_write($client, "ACK\n");
             } catch (\Exception $e) {
                 $this->error("Client handling error: " . $e->getMessage());
+                \Illuminate\Support\Facades\Storage::append('logs/tcp_listener_errors.log', "Client handling error: " . $e->getMessage() . "\n");
             }
 
             socket_close($client);

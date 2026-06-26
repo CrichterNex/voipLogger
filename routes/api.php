@@ -82,7 +82,11 @@ function convertDataToArray($data) {
             'initiator' => $record->initiator,
             'destination' => $record->destination_number,
             'call_direction' => $record->call_direction,
-            'external_number' => $record->external_number
+            'external_number' => $record->external_number,
+            'bill_cost' => "R" . number_format((doubleval($record->bill_cost)), 2),
+            'chain_routed' => $record->chain_routed,
+            'record_type' => $record->record_type,
+            'termination_reason' => $record->termination_reason,
         ];
     }
     return $arr;

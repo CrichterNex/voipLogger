@@ -31,6 +31,9 @@
                             <th>Duration</th>
                             <th>Destination</th>
                             <th>External Number</th>
+                            <th>Cost</th>
+                            <th>Routing Chain</th>
+                            <th>Record Type</th>
                         </tr>
 
                         @if(isset($records))
@@ -43,6 +46,9 @@
                                 <td>{{ $r->getDuration() }}</td>
                                 <td>{{ $r->destination_number }}</td>
                                 <td>{{ $r->external_number }} </td>
+                                <td>{{ $r->bill_cost }} </td>
+                                <td>{!! $r->chain_routed !!} </td>
+                                <td>{{ $r->record_type }} </td>
                             </tr>                               
                         @endforeach
                         @endif
@@ -110,6 +116,9 @@ function addRows (data) {
             <td>${record.duration}</td>
             <td>${record.destination}</td>
             <td>${record.external_number}</td>
+            <td>${record.bill_cost}</td>
+            <td>${record.chain_routed}</td>
+            <td>${record.record_type}</td>
         `;
         tableBody.appendChild(row);
     });

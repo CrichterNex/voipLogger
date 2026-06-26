@@ -49,6 +49,7 @@ class MitelCDR extends Model
             $record['bill_cost'] = (float)0;
             $record['bill_name'] = null;
             $record['chain_routed'] = "no info sent";
+            $record['record_type'] = 'Mitel CDR';
 
             ////////////////////////////////////////////////////////////////////////////////////////////
             $record = [];

@@ -33,14 +33,17 @@
                         @if (Auth::user()) 
                         <li class="nav-item">
                             <a href="#" class="nav-link">
-                                <i class="bi bi-circle-fill" id="tcp_listener"></i>  TCP Listener status 2533
+                                <i class="bi bi-circle-fill" id="tcp_listener2533"></i>  TCP Listener status 2533
                             </a> 
                             <a href="#" class="nav-link">
-                                <i class="bi bi-circle-fill" id="tcp_listener"></i>  TCP Listener status 3000
+                                <i class="bi bi-circle-fill" id="tcp_listener3000"></i>  TCP Listener status 3000
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{route('search.index')}}"><i class="bi bi-search"></i>Search</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{route('settings.index')}}"><i class="bi bi-gear"></i>Settings</a>
                         </li>
                         @endif
                     </ul>

@@ -75,32 +75,36 @@ class VoipRecord extends Model
              * chain_routed -- can be null
              * ddi -- can be null
              */
+            echo "Creating VoipRecord in DB: " . json_encode($data) . "\n";
 
             $record = new self();
             $record->call_direction = $data['call_direction'] ?? '';
             $record->extension = $data['extension'] ?? '';
             $record->final_number = $data['final_number'] ?? '';
             $record->external_number = $data['external_number'] ?? '';
+            $record->initiator = $data['initiator'] ?? null;
             $record->from_dn = $data['from_dn'] ?? '';
             $record->to_dn = $data['to_dn'] ?? '';
             $record->received_id = $data['received_id'] ?? null;
             $record->pri_number = $data['pri_number'] ?? '';
             $record->destination_number = $data['destination_number'] ?? '';
             $record->call_id = $data['call_id'] ?? '';
-            $record->time_start = $data['time_start'] ?? null;
+            $record->datetime = $data['datetime'] ?? null;
             $record->time_answered = $data['time_answered'] ?? null;
             $record->time_end = $data['time_end'] ?? null;
             $record->duration_in_seconds = $data['duration_in_seconds'] ?? 0;
             $record->termination_reason = $data['termination_reason'] ?? '';
             $record->bill_code = $data['bill_code'] ?? null;
             $record->bill_rate = $data['bill_rate'] ?? 0.0;
-            $record->cost = $data['cost'] ?? 0.0;
+            $record->bill_cost = $data['cost'] ?? 0.0;
             $record->bill_name = $data['bill_name'] ?? null;
             $record->chain_routed = $data['chain_routed'] ?? null;
             $record->ddi = $data['ddi'] ?? null;
+            $record->record_type = $data['record_type'] ?? null;
 
             $record->save();
         } catch (Throwable $e) {
+            echo "Failed to create VoipRecord in DB: " . $e->getMessage() . "\n";
             return; // ignore this record, it is not a valid VOIP record
         }
 
