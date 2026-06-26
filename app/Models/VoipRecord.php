@@ -44,98 +44,63 @@ class VoipRecord extends Model
 
     /**
      * creates a VOIP Record to save to DB
-     * @param string $data
+     * @param array $data
      * @return void
      * 
      * @throws \Exception
      */
-    public static function create(string $data): void {
-        echo "Processing VOIP record: $data\n";
-        if (empty($data)) {
-            echo "Empty data received, ignoring.\n";
-            return; // ignore empty data
-        }
-
-        if ($data == "\n") {
-            echo "Received a newline character, ignoring.\n";
-            return;
-        }
-        if (empty(trim($data))) {
-            echo "Received an empty line, ignoring.\n";
-            return; // ignore empty lines
-        }
-        $orig = $data;
-        // Remove any leading or trailing whitespace
-        $data = trim($data);
-
-        $data = explode(' ', $data);
-        foreach ($data as $key => $value) {
-            if (trim($data[$key]) === '') {
-                unset($data[$key]);
-            }
-        }
-
-        $data = array_values($data); // re-index the array
-
-        if (!(count($data) == 11 || count($data) == 13)) {
-            echo "Invalid VOIP record: expected 11 or 13 fields, found " . count($data) . " fields in record: $orig";
-            return; // ignore this record, it is not a valid VOIP record
-        }
-
-        if (count($data) < 11) {
-            echo "Invalid VOIP record: less than 11 fields found in record: $orig";
-            return; // ignore this record, it is not a valid VOIP record
-        }
+    public static function create(array $data): void {
         try {
-            $record = new VoipRecord();
-            $record->extension = $data[0] ?? '';
-            $record->ddi = $data[1] ?? '';
-            $datetime = Carbon::createFromFormat('ymd',$data[2] ?? '')->toDate();
-            $time = explode(":",$data[3]);
-            $datetime->setTime($time[0] ?? 0, $time[1] ?? 0, $time[2] ?? 0);
-            if (!$datetime) {
-                echo 'Invalid datetime format';
-                return;
-            }
-            $record->datetime = $datetime;
-            $duration = [
-                'hours' => (int)substr($data[4], 2) ?? 0,
-                'mins' => (int)substr($data[4], 3, 2) ?? 0,
-                'secs' => (int)substr($data[4], 6, 2) ?? 0
-            ];
+            /**
+             * Data must have the following keys:
+             * call_direction
+             * extension
+             * final_number
+             * external number
+             * from_dn
+             * to_dn
+             * received id
+             * pri_number
+             * destination number
+             * call_id
+             * time_start
+             * time_answered
+             * time_end
+             * duration_in_seconds
+             * Termination reason -- can be null
+             * bill_code -- can be null
+             * bill_rate -- can be null
+             * bill_cost -- can be null
+             * bill_name -- can be null
+             * chain_routed -- can be null
+             * ddi -- can be null
+             */
 
-            $seconds = $duration['hours'] * 3600 + $duration['mins'] * 60 + $duration['secs'];
-            $record->duration_in_seconds = $seconds;
+            $record = new self();
+            $record->call_direction = $data['call_direction'] ?? '';
+            $record->extension = $data['extension'] ?? '';
+            $record->final_number = $data['final_number'] ?? '';
+            $record->external_number = $data['external_number'] ?? '';
+            $record->from_dn = $data['from_dn'] ?? '';
+            $record->to_dn = $data['to_dn'] ?? '';
+            $record->received_id = $data['received_id'] ?? null;
+            $record->pri_number = $data['pri_number'] ?? '';
+            $record->destination_number = $data['destination_number'] ?? '';
+            $record->call_id = $data['call_id'] ?? '';
+            $record->time_start = $data['time_start'] ?? null;
+            $record->time_answered = $data['time_answered'] ?? null;
+            $record->time_end = $data['time_end'] ?? null;
+            $record->duration_in_seconds = $data['duration_in_seconds'] ?? 0;
+            $record->termination_reason = $data['termination_reason'] ?? '';
+            $record->bill_code = $data['bill_code'] ?? null;
+            $record->bill_rate = $data['bill_rate'] ?? 0.0;
+            $record->cost = $data['cost'] ?? 0.0;
+            $record->bill_name = $data['bill_name'] ?? null;
+            $record->chain_routed = $data['chain_routed'] ?? null;
+            $record->ddi = $data['ddi'] ?? null;
 
-            if (count($data) == 11) {
-                $record->call_direction = 'incoming';
-                $record->initiator = $data[6] ?? '';
-                $record->another_number = $data[5] ?? '';
-                $record->external_number = $data[7] ?? '';
-                $record->some_incoming_call_number1 = $data[8] ?? '';
-                $record->some_incoming_call_number2 = $data[9] ?? '';
-                $record->received_id = $data[10] ?? '';
-
-            } else if (count($data) == 13) {
-                $record->call_direction = 'outgoing';
-               
-                $record->cost = (float)($data[5] ?? 0.0);
-                $record->another_number = $data[7] ?? '';
-                $record->initiator = $data[8] ?? '';
-                $record->pri_number = $data[9] ?? '';
-                $record->destination_number = $data[10] ?? '';
-                $record->received_id = $data[12] ?? '';
-                $record->external_number = $data[11] ?? '';
-                
-                
-            }
-            
             $record->save();
         } catch (Throwable $e) {
-            echo "Failed to create VoipRecord in DB: " . $e->getMessage() . "\n";
-            echo "Original data: $orig\n";
-            echo "Data after processing: " . implode(' ', $data) . "\n";
-            echo "Stack trace: " . $e->getTraceAsString() . "\n";
             return; // ignore this record, it is not a valid VOIP record
         }
 

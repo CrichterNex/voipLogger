@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/tcp-listener/status', function (Request $request) {
+Route::get('/tcp-listener/status2533', function (Request $request) {
     $connection = @fsockopen("127.0.0.1", "2533");
     if (is_resource($connection)) {
         fclose($connection);
@@ -16,6 +16,24 @@ Route::get('/tcp-listener/status', function (Request $request) {
         return response()->json([
             'status' => 'stopped',
             'port' => 2533,
+            'host' => '0.0.0.0'
+        ]);
+    }
+});
+
+Route::get('/tcp-listener/status3000', function (Request $request) {
+    $connection = @fsockopen("127.0.0.1", "3000");
+    if (is_resource($connection)) {
+        fclose($connection);
+        return response()->json([
+            'status' => 'running',
+            'port' => 3000,
+            'host' => '0.0.0.0'
+        ]);
+    } else {
+        return response()->json([
+            'status' => 'stopped',
+            'port' => 3000,
             'host' => '0.0.0.0'
         ]);
     }
