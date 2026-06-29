@@ -14,7 +14,7 @@ class TCPListener3CX extends Command
      *
      * @var string
      */
-    protected $signature = 'app:tcp-listener-3cx';
+    protected $signature = 'tcp:listen-3cx';
 
     /**
      * The console command description.
