@@ -66,12 +66,17 @@ class TcpListener3CX extends Command
 
                     while (true) {
                         $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
-                        if ($chunk === false || $chunk === '') {
+                        if ($chunk === false) {
+                            $err = socket_last_error($client);
+                            $this->error("Socket error: " . socket_strerror($err));
                             break;
                         }
 
                         $line = trim($chunk);
-                        if ($line === '') continue;
+                        if ($chunk === '') {
+                            // DO NOT assume disconnect in streaming mode
+                            continue;
+                        }
 
                         file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
 
