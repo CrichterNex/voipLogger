@@ -56,7 +56,7 @@ class TcpListener extends Command
             $this->info("TCP listener started on {$host}:{$this->port}");
 
             while (true) {
-                $client = socket_accept($socket);
+                $client = @socket_accept($socket);
                 if ($client === false) {
                     $this->error("Socket accept failed: " . socket_strerror(socket_last_error()));
                     continue;
