@@ -56,9 +56,9 @@ class ThreeCXCDR extends Model
             $record['received_id'] = trim($data[0]);
             $record['pri_number'] = '';
             $record['call_id'] = trim($data[1]);
-            $record['datetime'] = Carbon::parse(trim($data[3]))->format('Y-m-d H:i:s');
-            $record['time_answered'] = Carbon::parse(trim($data[4]))->format('Y-m-d H:i:s');
-            $record['time_end'] = Carbon::parse(trim($data[5]))->format('Y-m-d H:i:s');
+            $record['datetime'] = Carbon::parse(trim($data[3]))->addHours(2)->format('Y-m-d H:i:s');
+            $record['time_answered'] = Carbon::parse(trim($data[4]))->addHours(2)->format('Y-m-d H:i:s');
+            $record['time_end'] = Carbon::parse(trim($data[5]))->addHours(2)->format('Y-m-d H:i:s');
             $record['ddi'] = '';
             $record['record_type'] = '3CX CDR';
 
