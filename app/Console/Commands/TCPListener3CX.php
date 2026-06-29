@@ -8,7 +8,7 @@ use Socket;
 use App\Models\MitelCDR;
 use App\Models\ThreeCXCDR;
 
-class TcpListener extends Command
+class TcpListener3CX extends Command
 {
     /**
      * The name and signature of the console command.
