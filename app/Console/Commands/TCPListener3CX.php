@@ -2,11 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Models\VoipRecord;
 use Illuminate\Console\Command;
-use Socket;
-use App\Models\MitelCDR;
 use App\Models\ThreeCXCDR;
+use Illuminate\Support\Facades\Log;
 
 class TcpListener3CX extends Command
 {
@@ -15,7 +13,7 @@ class TcpListener3CX extends Command
      *
      * @var string
      */
-    protected $signature = 'tcp:listen-3cx'; // Change the command signature to tcp:listen-3cx
+    protected $signature = 'tcp:listen-3cx';
 
     /**
      * The console command description.
@@ -24,7 +22,13 @@ class TcpListener3CX extends Command
      */
     protected $description = 'Creates a TCP listener that listens for incoming connections on a specified port.';
 
-    protected $port = 3000; // Change the port to 3000
+    /**
+     * Listener port.
+     *
+     * @var int
+     */
+    protected $port = 3000;
+
     /**
      * Execute the console command.
      */
@@ -33,62 +37,175 @@ class TcpListener3CX extends Command
         $host = '0.0.0.0';
 
         if (!extension_loaded('sockets')) {
-            $this->error("Sockets extension is NOT enabled.");
-            return;
+            $this->error('Sockets extension is NOT enabled.');
+            return 1;
         }
 
         $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-        if (!$socket) {
-            $this->error("Socket creation failed: " . socket_strerror(socket_last_error()));
-            return;
+
+        if ($socket === false) {
+            $this->error(
+                'Socket creation failed: ' .
+                socket_strerror(socket_last_error())
+            );
+            return 1;
         }
+
+        socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1);
 
         if (!socket_bind($socket, $host, $this->port)) {
-            $this->error("Bind failed: " . socket_strerror(socket_last_error($socket)));
+            $this->error(
+                'Socket bind failed: ' .
+                socket_strerror(socket_last_error($socket))
+            );
+            socket_close($socket);
             return 1;
         }
 
-        if (!socket_listen($socket)) {
-            $this->error("Listen failed: " . socket_strerror(socket_last_error($socket)));
+        if (!socket_listen($socket, 128)) {
+            $this->error(
+                'Socket listen failed: ' .
+                socket_strerror(socket_last_error($socket))
+            );
+            socket_close($socket);
             return 1;
         }
-        try {
-            $this->info("TCP listener started on {$host}:{$this->port}");
 
-            while (true) {
-                $client = @socket_accept($socket);
+        $this->info("TCP listener started on {$host}:{$this->port}");
+
+        while (true) {
+            try {
+                $this->line('Waiting for connection...');
+
+                $client = socket_accept($socket);
+
                 if ($client === false) {
-                    $this->error("Socket accept failed: " . socket_strerror(socket_last_error()));
+                    $error = socket_last_error($socket);
+
+                    $this->error(
+                        'Socket accept failed: ' .
+                        socket_strerror($error)
+                    );
+
+                    sleep(1);
                     continue;
                 }
 
-                socket_set_option($client, SOL_SOCKET, SO_RCVTIMEO, ["sec" => 10, "usec" => 0]);
+                socket_getpeername($client, $clientIp, $clientPort);
 
-                    while (true) {
-                        $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
-                        if ($chunk === false || $chunk === '') {
-                            break;
-                        }
+                $this->info(
+                    "Client connected: {$clientIp}:{$clientPort}"
+                );
 
-                        $line = trim($chunk);
-                        if ($line === '') continue;
+                socket_set_option(
+                    $client,
+                    SOL_SOCKET,
+                    SO_RCVTIMEO,
+                    [
+                        'sec' => 10,
+                        'usec' => 0,
+                    ]
+                );
 
-                        file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
+                $recordCount = 0;
 
-                        ThreeCXCDR::PreProcessData($line); // Use correct column name
+                while (true) {
+                    $chunk = socket_read(
+                        $client,
+                        2048,
+                        PHP_NORMAL_READ
+                    );
 
+                    if ($chunk === false) {
+                        $error = socket_last_error($client);
+
+                        $this->warn(
+                            'Read failed: ' .
+                            socket_strerror($error)
+                        );
+
+                        break;
                     }
 
-                    socket_write($client, "ACK\n");
-                
+                    if ($chunk === '') {
+                        $this->line(
+                            "Client disconnected: {$clientIp}:{$clientPort}"
+                        );
+                        break;
+                    }
+
+                    $line = trim($chunk);
+
+                    if (empty($line)) {
+                        continue;
+                    }
+
+                    $recordCount++;
+
+                    $this->line(
+                        "Processing record #{$recordCount}"
+                    );
+
+                    try {
+                        file_put_contents(
+                            storage_path('logs/tcp_listener.log'),
+                            date('Y-m-d H:i:s') .
+                            ' ' .
+                            $line .
+                            PHP_EOL,
+                            FILE_APPEND | LOCK_EX
+                        );
+
+                        $start = microtime(true);
+
+                        ThreeCXCDR::PreProcessData($line);
+
+                        $duration = round(
+                            microtime(true) - $start,
+                            3
+                        );
+
+                        $this->info(
+                            "Record #{$recordCount} processed in {$duration}s"
+                        );
+                    } catch (\Throwable $e) {
+                        $message =
+                            "Record processing failed: " .
+                            $e->getMessage();
+
+                        $this->error($message);
+
+                        Log::error($message, [
+                            'exception' => $e,
+                            'record' => $line,
+                        ]);
+
+                        continue;
+                    }
+                }
+
+                @socket_write($client, "ACK\n");
 
                 socket_close($client);
-            }
 
-            socket_close($socket);
-        } catch (\Exception $e) {
-            $this->error("Client handling error: " . $e->getMessage());
-            \Illuminate\Support\Facades\Storage::append('logs/tcp_listener_errors.log', "Client handling error: " . $e->getMessage() . "\n");
+                $this->info(
+                    "Connection closed. Records processed: {$recordCount}"
+                );
+            } catch (\Throwable $e) {
+                $this->error(
+                    'Listener error: ' . $e->getMessage()
+                );
+
+                Log::error('TCP Listener Error', [
+                    'exception' => $e,
+                ]);
+
+                sleep(1);
+            }
         }
+
+        socket_close($socket);
+
+        return 0;
     }
 }
