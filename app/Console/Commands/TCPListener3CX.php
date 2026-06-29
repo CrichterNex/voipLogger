@@ -84,7 +84,7 @@ class TcpListener3CX extends Command
 
                     }
 
-                    socket_write($client, "ACK\n");
+                    //socket_write($client, "ACK\n");
                 
 
                 socket_close($client);
