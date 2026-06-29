@@ -43,44 +43,52 @@ class TcpListener extends Command
             return;
         }
 
-        socket_bind($socket, $host, $this->port);
-        socket_listen($socket);
-        $this->info("TCP listener started on {$host}:{$this->port}");
-
-        while (true) {
-            $client = @socket_accept($socket);
-            if ($client === false) {
-                $this->error("Socket accept failed: " . socket_strerror(socket_last_error()));
-                continue;
-            }
-
-            socket_set_option($client, SOL_SOCKET, SO_RCVTIMEO, ["sec" => 10, "usec" => 0]);
-
-            try {
-                while (true) {
-                    $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
-                    if ($chunk === false || $chunk === '') {
-                        break;
-                    }
-
-                    $line = trim($chunk);
-                    if ($line === '') continue;
-
-                    file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
-
-                    ThreeCXCDR::PreProcessData($line); // Use correct column name
-
-                }
-
-                socket_write($client, "ACK\n");
-            } catch (\Exception $e) {
-                $this->error("Client handling error: " . $e->getMessage());
-                \Illuminate\Support\Facades\Storage::append('logs/tcp_listener_errors.log', "Client handling error: " . $e->getMessage() . "\n");
-            }
-
-            socket_close($client);
+        if (!socket_bind($socket, $host, $this->port)) {
+            $this->error("Bind failed: " . socket_strerror(socket_last_error($socket)));
+            return 1;
         }
 
-        socket_close($socket);
+        if (!socket_listen($socket)) {
+            $this->error("Listen failed: " . socket_strerror(socket_last_error($socket)));
+            return 1;
+        }
+        try {
+            $this->info("TCP listener started on {$host}:{$this->port}");
+
+            while (true) {
+                $client = socket_accept($socket);
+                if ($client === false) {
+                    $this->error("Socket accept failed: " . socket_strerror(socket_last_error()));
+                    continue;
+                }
+
+                socket_set_option($client, SOL_SOCKET, SO_RCVTIMEO, ["sec" => 10, "usec" => 0]);
+
+                    while (true) {
+                        $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
+                        if ($chunk === false || $chunk === '') {
+                            break;
+                        }
+
+                        $line = trim($chunk);
+                        if ($line === '') continue;
+
+                        file_put_contents(storage_path('logs/tcp_listener.log'), $line . PHP_EOL, FILE_APPEND);
+
+                        ThreeCXCDR::PreProcessData($line); // Use correct column name
+
+                    }
+
+                    socket_write($client, "ACK\n");
+                
+
+                socket_close($client);
+            }
+
+            socket_close($socket);
+        } catch (\Exception $e) {
+            $this->error("Client handling error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Storage::append('logs/tcp_listener_errors.log', "Client handling error: " . $e->getMessage() . "\n");
+        }
     }
 }
