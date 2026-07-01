@@ -48,52 +48,100 @@ class TCPListener3CX extends Command
             return;
         }
 
+        socket_set_option($socket, SOL_SOCKET, SO_REUSEADDR, 1);
         socket_bind($socket, $host, $this->port);
-        socket_listen($socket);
+        socket_listen($socket, 16);
+        socket_set_nonblock($socket);
         $this->info("TCP listener started on {$host}:{$this->port}");
 
+        // Keyed by socket id => ['socket' => Socket, 'buffer' => string]. A blocking,
+        // one-client-at-a-time accept loop meant the persistent 3CX CDR connection
+        // starved out anything else trying to reach this port (e.g. health checks) -
+        // socket_select() lets us service every connected socket concurrently instead.
+        $clients = [];
+
         while (true) {
-            $client = @socket_accept($socket);
-            if ($client === false) {
-                $this->error("Socket accept failed: " . socket_strerror(socket_last_error()));
+            $read = [$socket];
+            foreach ($clients as $c) {
+                $read[] = $c['socket'];
+            }
+
+            $write = null;
+            $except = null;
+            $changed = @socket_select($read, $write, $except, 1);
+            if ($changed === false || $changed === 0) {
                 continue;
             }
 
-            socket_set_option($client, SOL_SOCKET, SO_RCVTIMEO, ["sec" => 10, "usec" => 0]);
-
-            try {
-                
-
-                while (true) {
-                    
-                    $chunk = socket_read($client, 2048, PHP_NORMAL_READ);
-                    if ($chunk === false || $chunk === '') {
-                        break;
-                    }
-                    
-
-                    $line = trim($chunk);
-                    if ($line === '')  {
+            foreach ($read as $sock) {
+                if ($sock === $socket) {
+                    $client = @socket_accept($socket);
+                    if ($client === false) {
                         continue;
                     }
 
-                    file_put_contents(storage_path('logs/tcp_listener3cx.log'), "$line" . PHP_EOL, FILE_APPEND);
-                    
+                    socket_set_nonblock($client);
 
-                    ThreeCXCDR::PreProcessData($line);
+                    // Keep the TCP session generating traffic while idle so stateful
+                    // firewalls (e.g. FortiGate) don't age out the connection during
+                    // quiet overnight periods.
+                    socket_set_option($client, SOL_SOCKET, SO_KEEPALIVE, 1);
+                    if (defined('TCP_KEEPIDLE')) {
+                        socket_set_option($client, SOL_TCP, TCP_KEEPIDLE, 30);
+                    }
+                    if (defined('TCP_KEEPINTVL')) {
+                        socket_set_option($client, SOL_TCP, TCP_KEEPINTVL, 10);
+                    }
+                    if (defined('TCP_KEEPCNT')) {
+                        socket_set_option($client, SOL_TCP, TCP_KEEPCNT, 3);
+                    }
 
-                    
+                    $clients[spl_object_id($client)] = ['socket' => $client, 'buffer' => ''];
+                    continue;
                 }
 
-                //socket_write($client, "ACK\n");
-            } catch (\Exception $e) {
-                $this->error("Client handling error: " . $e->getMessage());
-                Storage::append('logs/tcp_listener3cx_errors.log', "Client handling error: " . $e->getMessage() . "\n");
+                $id = spl_object_id($sock);
+                if (!isset($clients[$id])) {
+                    continue;
+                }
+
+                $chunk = @socket_read($sock, 2048);
+                if ($chunk === false) {
+                    $errno = socket_last_error($sock);
+                    if (in_array($errno, [SOCKET_EAGAIN, SOCKET_EWOULDBLOCK], true)) {
+                        continue; // spurious wakeup, no data actually available yet
+                    }
+                    socket_close($sock);
+                    unset($clients[$id]);
+                    continue;
+                }
+                if ($chunk === '') {
+                    // Peer closed the connection cleanly.
+                    socket_close($sock);
+                    unset($clients[$id]);
+                    continue;
+                }
+
+                $clients[$id]['buffer'] .= $chunk;
+
+                while (($pos = strpos($clients[$id]['buffer'], "\n")) !== false) {
+                    $line = trim(substr($clients[$id]['buffer'], 0, $pos));
+                    $clients[$id]['buffer'] = substr($clients[$id]['buffer'], $pos + 1);
+
+                    if ($line === '') {
+                        continue;
+                    }
+
+                    try {
+                        file_put_contents(storage_path('logs/tcp_listener3cx.log'), "$line" . PHP_EOL, FILE_APPEND);
+
+                        ThreeCXCDR::PreProcessData($line);
+                    } catch (\Exception $e) {
+                        $this->error("Client handling error: " . $e->getMessage());
+                        Storage::append('logs/tcp_listener3cx_errors.log', "Client handling error: " . $e->getMessage() . "\n");
+                    }
+                }
             }
-
-            socket_close($client);
         }
-
-        socket_close($socket);
     }
 }
